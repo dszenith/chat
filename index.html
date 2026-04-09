@@ -13,120 +13,136 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
         .bg-chat { background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%); }
-        
-        .status-pulse { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.1); } }
-
-        .gloss-effect {
-            position: relative;
-            overflow: hidden;
-            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 50%);
-        }
-
-        .msg-pop {
-            animation: popDust 0.25s ease-out forwards;
-            will-change: transform, opacity;
-        }
-        @keyframes popDust {
-            0% { opacity: 0; transform: scale(0.96) translateY(5px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
-        }
+        .msg-pop { animation: pop 0.2s ease-out forwards; }
+        @keyframes pop { 0% { opacity: 0; transform: scale(0.98); } 100% { opacity: 1; transform: scale(1); } }
+        .active-target { border: 2px solid #22d3ee; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4); transform: scale(1.1); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="text-slate-100 antialiased overflow-hidden font-sans bg-chat">
+<body class="text-slate-100 antialiased overflow-hidden font-sans bg-[#0b1120]">
 
 <audio id="snd-in" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" preload="auto"></audio>
 <audio id="snd-out" src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3" preload="auto"></audio>
 <audio id="snd-type" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3" preload="auto"></audio>
 
-<div x-data="chatApp()" x-init="init()" x-cloak class="flex flex-col h-[100dvh] max-w-2xl mx-auto border-x border-slate-800 bg-[#0f172a]/50 shadow-2xl backdrop-blur-sm">
+<div x-data="chatApp()" x-init="init()" x-cloak class="flex h-[100dvh] w-full max-w-6xl mx-auto border-x border-slate-800 shadow-2xl overflow-hidden">
     
-    <header class="p-4 border-b border-slate-800 flex justify-between items-center bg-[#0f172a]/95 backdrop-blur-md sticky top-0 z-50">
-        <div class="flex items-center gap-3">
-            <div :class="isConnected ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-red-500 shadow-[0_0_8px_#ef4444]'" 
-                 class="w-2.5 h-2.5 rounded-full status-pulse"></div>
-            <h1 class="font-black text-2xl text-cyan-400 uppercase italic tracking-tighter shadow-cyan-500/20">CHATNITH</h1>
-        </div>
-        <template x-if="username">
-            <div class="flex items-center gap-2 bg-cyan-400/10 px-3 py-1 rounded-full border border-cyan-400/20">
+    <aside class="w-20 sm:w-24 bg-[#0f172a] border-r border-slate-800 flex flex-col items-center py-6 gap-4 z-20 overflow-y-auto no-scrollbar">
+        <button @click="activeTarget = 'global'" 
+             :class="activeTarget === 'global' ? 'active-target opacity-100' : 'opacity-40 hover:opacity-100'"
+             class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center transition-all duration-200">
+            <span class="text-[10px] font-black text-cyan-400 italic">ALL</span>
+        </button>
+        <div class="w-8 h-[1px] bg-slate-800 my-1"></div>
+        <template x-for="contact in recentContacts" :key="contact">
+            <button @click="activeTarget = contact"
+                 :class="activeTarget === contact ? 'active-target opacity-100' : 'opacity-70 hover:opacity-100'"
+                 class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white uppercase text-xl transition-all shadow-lg"
+                 :style="'background:' + getUserColor(contact)">
+                <span x-text="contact.substring(0,1)"></span>
+            </button>
+        </template>
+    </aside>
+
+    <div class="flex-1 flex flex-col bg-chat relative">
+        <header class="p-4 border-b border-slate-800 flex justify-between items-center bg-[#0f172a]/95 backdrop-blur-md">
+            <div>
+                <h1 class="font-black text-xl text-cyan-400 uppercase italic tracking-tighter" 
+                    x-text="activeTarget === 'global' ? 'CHATNITH' : activeTarget"></h1>
+                <div class="flex items-center gap-1.5">
+                    <div :class="isConnected ? 'bg-green-500 shadow-[0_0_5px_#22c55e]' : 'bg-red-500'" class="w-1.5 h-1.5 rounded-full"></div>
+                    <span class="text-[9px] text-slate-500 uppercase font-bold tracking-widest" x-text="isConnected ? 'Online' : 'Offline'"></span>
+                </div>
+            </div>
+            <div class="bg-cyan-400/10 px-3 py-1 rounded-full border border-cyan-400/20">
                 <span class="text-[11px] font-bold text-cyan-400" x-text="username"></span>
             </div>
-        </template>
-    </header>
+        </header>
 
-    <template x-if="!usernameSet">
-        <div class="flex-1 flex items-center justify-center p-6 bg-[#0b1120]">
-            <div class="w-full max-w-sm space-y-6">
-                <div class="text-center">
-                    <h2 class="text-4xl font-black text-white mb-2 uppercase italic tracking-tight">Accesso</h2>
-                    <p class="text-slate-500 text-[10px] uppercase tracking-widest font-bold text-center">Protocollo <span class="text-cyan-400">CHATNITH</span>. Identità criptata.</p>
+        <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
+            <template x-for="msg in filteredMessages" :key="msg.id">
+                <div :class="msg.username === username ? 'items-end' : 'items-start'" class="flex flex-col group msg-pop">
+                    
+                    <div class="flex items-center gap-2 mb-1 px-1">
+                        <template x-if="msg.username === username">
+                            <div class="flex items-center gap-2">
+                                <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button @click="startEdit(msg)" class="text-cyan-500/50 hover:text-cyan-500">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </button>
+                                    <button @click="deleteMsg(msg.id)" class="text-red-500/50 hover:text-red-500">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </button>
+                                </div>
+                                <span class="text-[10px] font-bold tracking-widest uppercase" :style="'color:' + getUserColor(msg.username)">YOU</span>
+                            </div>
+                        </template>
+
+                        <template x-if="msg.username !== username">
+                            <span class="text-[10px] font-bold tracking-widest uppercase cursor-pointer hover:underline hover:brightness-125" 
+                                  :style="'color:' + getUserColor(msg.username)"
+                                  @click="openDM(msg.username)"
+                                  x-text="msg.username">
+                            </span>
+                        </template>
+                    </div>
+                    
+                    <div class="flex items-end gap-2 max-w-[85%] group">
+                        <template x-if="msg.username !== username">
+                            <div class="flex flex-row items-end gap-2">
+                                <div class="bg-slate-800 text-slate-200 rounded-r-2xl rounded-tl-2xl border border-slate-700 px-5 py-3 shadow-lg relative overflow-hidden">
+                                    <span x-text="msg.content"></span>
+                                </div>
+                                <span class="text-[9px] text-slate-600 font-bold mb-1" x-text="formatTime(msg.created_at)"></span>
+                            </div>
+                        </template>
+
+                        <template x-if="msg.username === username">
+                            <div class="flex flex-row items-end gap-2">
+                                <span class="text-[9px] text-slate-600 font-bold mb-1" x-text="formatTime(msg.created_at)"></span>
+                                <div class="bg-cyan-600 text-white rounded-l-2xl rounded-tr-2xl px-5 py-3 shadow-lg relative">
+                                    <template x-if="editingId !== msg.id">
+                                        <span x-text="msg.content"></span>
+                                    </template>
+                                    <template x-if="editingId === msg.id">
+                                        <div class="flex flex-col gap-2 min-w-[150px]">
+                                            <input x-model="editContent" @keyup.enter="saveEdit(msg.id)" @keyup.escape="editingId = null" 
+                                                   class="bg-black/30 border border-white/20 rounded px-2 py-1 outline-none text-white w-full" autofocus>
+                                            <div class="flex justify-end gap-2 text-[10px] font-bold uppercase">
+                                                <button @click="saveEdit(msg.id)" class="text-white">Save</button>
+                                                <button @click="editingId = null" class="text-white/40">X</button>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
                 </div>
-                <div class="space-y-4">
-                    <input x-model="tempName" @keyup.enter="lockUsername" type="text" maxlength="15" placeholder="Nickname..." 
-                           class="w-full p-5 bg-slate-900 border-2 border-slate-800 rounded-2xl focus:border-cyan-500 outline-none transition-all text-center font-black text-xl text-white">
-                    <button @click="lockUsername" class="w-full bg-cyan-600 hover:bg-cyan-500 p-5 rounded-2xl font-black text-white shadow-lg active:scale-95 transition-all uppercase tracking-widest">
-                        Entra
-                    </button>
-                </div>
+            </template>
+        </div>
+
+        <div class="p-4 bg-slate-900/90 border-t border-slate-800">
+            <div class="flex items-center bg-slate-900 rounded-2xl border border-slate-700 focus-within:border-cyan-500 transition-all p-1">
+                <input x-model="newMsg" @input="playTyping()" @keyup.enter="send" type="text" 
+                       :placeholder="activeTarget === 'global' ? 'Scrivi...' : 'Privato a ' + activeTarget" 
+                       class="flex-1 p-4 bg-transparent outline-none text-sm text-white">
+                <button @click="send" class="p-3 bg-cyan-600 text-white rounded-xl hover:bg-cyan-500 transition-all active:scale-90">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19V5m0 0l-7 7m7-7l7 7"/>
+                    </svg>
+                </button>
             </div>
         </div>
-    </template>
+    </div>
 
-    <template x-if="usernameSet">
-        <div class="flex flex-col flex-1 overflow-hidden relative">
-            <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
-                <template x-for="msg in messages" :key="msg.id">
-                    <div :class="msg.username === username ? 'items-end' : 'items-start'" class="flex flex-col group msg-pop">
-                        
-                        <div class="flex items-center gap-2 mb-1 px-1">
-                            <template x-if="msg.username === username && editingId !== msg.id">
-                                <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button @click="startEdit(msg)" class="text-cyan-500 hover:text-cyan-300 transition-colors">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                    </button>
-                                    <button @click="deleteMsg(msg.id)" class="text-red-500 hover:text-red-300 transition-colors">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                    </button>
-                                </div>
-                            </template>
-                            <span class="text-[10px] font-bold tracking-widest uppercase" 
-                                  :style="'color:' + getUserColor(msg.username)"
-                                  x-text="msg.username === username ? 'YOU' : msg.username"></span>
-                        </div>
-
-                        <div :class="msg.username === username ? 'bg-cyan-600 text-white rounded-l-2xl rounded-tr-2xl' : 'bg-slate-800 text-slate-200 rounded-r-2xl rounded-tl-2xl border border-slate-700'" 
-                             class="px-5 py-3 max-w-[85%] break-words text-[15px] shadow-lg gloss-effect">
-                            
-                            <template x-if="editingId !== msg.id">
-                                <span x-text="msg.content"></span>
-                            </template>
-
-                            <template x-if="editingId === msg.id">
-                                <div class="flex flex-col gap-2 min-w-[200px]">
-                                    <input x-model="editContent" @keyup.enter="saveEdit(msg.id)" @keyup.escape="editingId = null" 
-                                           class="bg-black/30 border border-white/20 rounded px-2 py-1 outline-none text-white w-full" autofocus>
-                                    <div class="flex justify-end gap-2 text-[10px]">
-                                        <button @click="saveEdit(msg.id)" class="font-bold uppercase text-white">Update</button>
-                                        <button @click="editingId = null" class="font-bold uppercase text-white/50">Cancel</button>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </template>
-                <div class="h-4"></div>
-            </div>
-
-            <div class="p-4 bg-slate-900/90 border-t border-slate-800 backdrop-blur-xl">
-                <div class="relative flex items-center bg-slate-900 rounded-2xl border border-slate-700 focus-within:border-cyan-500 transition-all p-1">
-                    <input x-model="newMsg" @input="playTyping()" @keyup.enter="send" type="text" placeholder="Messaggio..." 
-                           class="flex-1 p-4 bg-transparent outline-none text-sm font-medium text-white">
-                    <button @click="send" class="p-3 bg-cyan-600 text-white rounded-xl hover:bg-cyan-500 transition-colors active:scale-90">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                        </svg>
-                    </button>
-                </div>
+    <template x-if="!usernameSet">
+        <div class="fixed inset-0 bg-[#0b1120] z-[100] flex items-center justify-center p-6">
+            <div class="w-full max-w-sm space-y-6 text-center">
+                <h2 class="text-4xl font-black text-white italic tracking-tighter uppercase">CHATNITH</h2>
+                <input x-model="tempName" @keyup.enter="lockUsername" type="text" placeholder="Nickname..." 
+                       class="w-full p-5 bg-slate-900 border-2 border-slate-800 rounded-2xl focus:border-cyan-500 outline-none text-center font-black text-xl text-white">
+                <button @click="lockUsername" class="w-full bg-cyan-600 p-5 rounded-2xl font-black text-white uppercase tracking-widest active:scale-95 transition-all">Entra</button>
             </div>
         </div>
     </template>
@@ -137,112 +153,107 @@
         const SB_URL = 'https://aarpqxnoskyzmliqpaor.supabase.co'; 
         const SB_KEY = 'sb_publishable_eA6TYstP3koJVbkHdDmc7A_07e7zV2r'; 
         const supabase = window.supabase.createClient(SB_URL, SB_KEY);
-        let channel = null;
 
         return {
-            username: '', tempName: '', usernameSet: false, newMsg: '', messages: [],
-            isConnected: false, editingId: null, editContent: '',
-            
+            username: '', tempName: '', usernameSet: false, 
+            newMsg: '', messages: [], isConnected: false,
+            activeTarget: 'global', editingId: null, editContent: '',
+
             init() {
                 const saved = localStorage.getItem('_chatnith_uid');
-                if(saved) {
-                    this.username = saved;
-                    this.usernameSet = true;
-                    this.startChat();
-                }
+                if(saved) { this.username = saved; this.usernameSet = true; this.startChat(); }
             },
 
-            // Generatore di colori deterministico (leggerissimo)
+            formatTime(timestamp) {
+                if(!timestamp) return '';
+                const date = new Date(timestamp);
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            },
+
+            get filteredMessages() {
+                if (this.activeTarget === 'global') return this.messages.filter(m => !m.to_user);
+                return this.messages.filter(m => 
+                    (m.username === this.username && m.to_user === this.activeTarget) ||
+                    (m.username === this.activeTarget && m.to_user === this.username)
+                );
+            },
+
+            get recentContacts() {
+                const contacts = new Set();
+                this.messages.forEach(m => {
+                    if (m.to_user && m.to_user !== 'global') {
+                        contacts.add(m.username === this.username ? m.to_user : m.username);
+                    }
+                });
+                if (this.activeTarget !== 'global') contacts.add(this.activeTarget);
+                return Array.from(contacts);
+            },
+
             getUserColor(name) {
                 if (!name) return '#94a3b8';
                 let hash = 0;
-                for (let i = 0; i < name.length; i++) {
-                    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-                }
-                // Usiamo colori vividi che stiano bene sul tema dark
-                const colors = [
-                    '#22d3ee', '#818cf8', '#fb7185', '#34d399', 
-                    '#fbbf24', '#a78bfa', '#f472b6', '#fb923c'
-                ];
+                for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+                const colors = ['#22d3ee', '#818cf8', '#fb7185', '#34d399', '#fbbf24', '#a78bfa', '#f472b6', '#fb923c'];
                 return colors[Math.abs(hash) % colors.length];
             },
 
+            openDM(user) { if (user !== this.username) this.activeTarget = user; this.scroll(); },
+
             playTyping() {
                 const snd = document.getElementById('snd-type');
-                if(snd.paused || snd.currentTime > 0.1) { 
-                    snd.currentTime = 0;
-                    snd.volume = 0.15;
-                    snd.play().catch(()=>{});
-                }
+                if(snd.paused || snd.currentTime > 0.1) { snd.currentTime = 0; snd.volume = 0.05; snd.play().catch(()=>{}); }
             },
 
             lockUsername() {
                 const name = this.tempName.trim();
                 if(name.length < 2) return;
                 localStorage.setItem('_chatnith_uid', name);
-                this.username = name;
-                this.usernameSet = true;
-                this.startChat();
+                this.username = name; this.usernameSet = true; this.startChat();
             },
 
             async startChat() {
-                if(channel) supabase.removeChannel(channel);
-                
-                const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: false }).limit(50);
+                const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: false }).limit(200);
                 this.messages = (data || []).reverse();
                 this.scroll();
 
-                channel = supabase.channel('chatnith_global');
-                channel.on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
-                    if (payload.eventType === 'INSERT') {
-                        if (!this.messages.some(m => m.id === payload.new.id)) {
+                supabase.channel('public')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
+                        if (payload.eventType === 'INSERT') {
                             this.messages.push(payload.new);
-                            if(this.messages.length > 60) this.messages.shift();
-                            if(payload.new.username !== this.username) document.getElementById('snd-in').play().catch(()=>{});
+                            if (payload.new.username !== this.username && (!payload.new.to_user || payload.new.to_user === this.username)) {
+                                document.getElementById('snd-in').play().catch(()=>{});
+                            }
+                        } else if (payload.eventType === 'DELETE') {
+                            this.messages = this.messages.filter(m => m.id !== payload.old.id);
+                        } else if (payload.eventType === 'UPDATE') {
+                            const idx = this.messages.findIndex(m => m.id === payload.new.id);
+                            if (idx !== -1) this.messages[idx] = payload.new;
                         }
-                    } else if (payload.eventType === 'DELETE') {
-                        this.messages = this.messages.filter(m => m.id !== payload.old.id);
-                    } else if (payload.eventType === 'UPDATE') {
-                        const idx = this.messages.findIndex(m => m.id === payload.new.id);
-                        if (idx !== -1) this.messages[idx] = payload.new;
-                    }
-                    this.scroll();
-                })
-                .subscribe((status) => {
-                    this.isConnected = (status === 'SUBSCRIBED');
-                });
+                        this.scroll();
+                    })
+                    .subscribe(s => this.isConnected = (s === 'SUBSCRIBED'));
             },
 
             async send() {
-                const content = this.newMsg.trim();
-                if(!content) return;
+                if(!this.newMsg.trim()) return;
+                const msg = { username: this.username, content: this.newMsg, to_user: this.activeTarget === 'global' ? null : this.activeTarget };
                 this.newMsg = '';
                 document.getElementById('snd-out').play().catch(()=>{});
-                await supabase.from('messages').insert([{ username: this.username, content: content }]);
+                await supabase.from('messages').insert([msg]);
             },
 
-            async deleteMsg(id) {
-                if(confirm("Eliminare?")) await supabase.from('messages').delete().eq('id', id);
-            },
-
-            startEdit(msg) {
-                this.editingId = msg.id;
-                this.editContent = msg.content;
-            },
+            startEdit(msg) { this.editingId = msg.id; this.editContent = msg.content; },
 
             async saveEdit(id) {
                 if(!this.editContent.trim()) return;
-                const newText = this.editContent;
+                const text = this.editContent;
                 this.editingId = null;
-                await supabase.from('messages').update({ content: newText }).eq('id', id);
+                await supabase.from('messages').update({ content: text }).eq('id', id);
             },
 
-            scroll() {
-                this.$nextTick(() => {
-                    const b = document.getElementById('chat-box');
-                    if(b) b.scrollTop = b.scrollHeight;
-                });
-            }
+            async deleteMsg(id) { if(confirm("Eliminare?")) await supabase.from('messages').delete().eq('id', id); },
+
+            scroll() { this.$nextTick(() => { const b = document.getElementById('chat-box'); if(b) b.scrollTop = b.scrollHeight; }); }
         }
     }
 </script>
