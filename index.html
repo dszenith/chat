@@ -2,96 +2,168 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sfidante Chat Globale</title>
-    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CHATNITH</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0b141a; color: #e9edef; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        #header { background: #202c33; padding: 15px; text-align: center; font-weight: bold; border-bottom: 1px solid #3b4a54; }
-        #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { max-width: 80%; padding: 8px 12px; border-radius: 8px; font-size: 15px; position: relative; background: #202c33; align-self: flex-start; }
-        .msg.me { align-self: flex-end; background: #005c4b; }
-        .user { font-size: 11px; color: #8696a0; margin-bottom: 4px; display: block; }
-        #input-area { background: #202c33; padding: 10px; display: flex; gap: 10px; }
-        input { flex: 1; background: #2a3942; border: none; color: white; padding: 12px; border-radius: 8px; outline: none; }
-        button { background: #00a884; color: #111b21; border: none; padding: 0 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        #overlay { position: fixed; inset: 0; background: #111b21; display: flex; align-items: center; justify-content: center; z-index: 1000; }
-        .modal { background: #233138; padding: 30px; border-radius: 12px; text-align: center; }
+        [x-cloak] { display: none !important; }
+        body { background-color: #0b1120; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .bg-chat { background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%); }
     </style>
 </head>
-<body>
+<body class="text-slate-100 antialiased overflow-hidden font-sans bg-chat">
 
-<div id="overlay">
-    <div class="modal">
-        <h2>Entra nella Chat Globale</h2>
-        <input type="text" id="nick" placeholder="Tuo Nickname...">
-        <br><br>
-        <button onclick="join()">Inizia a Chattare</button>
-    </div>
-</div>
+<div x-data="chatApp()" x-init="init()" x-cloak class="flex flex-col h-[100dvh] max-w-2xl mx-auto border-x border-slate-800 bg-[#0f172a]/50 shadow-2xl backdrop-blur-sm">
+    
+    <header class="p-4 border-b border-slate-800 flex justify-between items-center bg-[#0f172a]/95 backdrop-blur-md sticky top-0 z-50">
+        <div>
+            <h1 class="font-black text-2xl text-cyan-400 uppercase italic tracking-tighter shadow-cyan-500/20">CHATNITH</h1>
+            <p class="text-[9px] text-slate-500 font-mono tracking-widest uppercase">Network Status: Secured</p>
+        </div>
+        <template x-if="username">
+            <div class="flex items-center gap-2 bg-cyan-400/10 px-3 py-1 rounded-full border border-cyan-400/20">
+                <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_8px_#22d3ee]"></span>
+                <span class="text-[11px] font-bold text-cyan-400" x-text="username"></span>
+            </div>
+        </template>
+    </header>
 
-<div id="header">🌍 CANALE GLOBALE ATTIVO</div>
-<div id="chat"></div>
+    <template x-if="!usernameSet">
+        <div class="flex-1 flex items-center justify-center p-6 bg-[#0b1120]">
+            <div class="w-full max-w-sm space-y-6 animate-in fade-in zoom-in duration-500">
+                <div class="text-center">
+                    <h2 class="text-4xl font-black text-white mb-2 uppercase italic tracking-tight">Accesso</h2>
+                    <p class="text-slate-400 text-xs">Scegli il tuo nome in <span class="text-cyan-400 font-bold">CHATNITH</span>.<br>Una volta creato, sarà permanente.</p>
+                </div>
+                <div class="space-y-4">
+                    <input x-model="tempName" @keyup.enter="lockUsername" type="text" maxlength="15" placeholder="Nome utente..." 
+                           class="w-full p-5 bg-slate-900 border-2 border-slate-800 rounded-2xl focus:border-cyan-500 outline-none transition-all text-center font-black text-xl text-white shadow-2xl">
+                    <button @click="lockUsername" class="w-full bg-cyan-600 hover:bg-cyan-500 p-5 rounded-2xl font-black text-white shadow-lg shadow-cyan-900/40 active:scale-95 transition-all uppercase tracking-widest">
+                        Entra Ora
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
 
-<div id="input-area">
-    <input type="text" id="message" placeholder="Scrivi un messaggio...">
-    <button onclick="send()">Invia</button>
+    <template x-if="usernameSet">
+        <div class="flex flex-col flex-1 overflow-hidden relative">
+            <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
+                <template x-for="msg in messages" :key="msg.id">
+                    <div :class="msg.username === username ? 'items-end' : 'items-start'" class="flex flex-col animate-in slide-in-from-bottom-2 duration-300">
+                        <span class="text-[10px] font-bold text-slate-500 mb-1 px-1 tracking-widest uppercase" 
+                              x-text="msg.username === username ? 'YOU' : msg.username"></span>
+                        <div :class="msg.username === username ? 'bg-cyan-600 text-white rounded-l-2xl rounded-tr-2xl shadow-cyan-900/20' : 'bg-slate-800 text-slate-200 rounded-r-2xl rounded-tl-2xl border border-slate-700'" 
+                             class="px-5 py-3 max-w-[85%] break-words text-[15px] shadow-sm">
+                            <span x-text="msg.content"></span>
+                        </div>
+                    </div>
+                </template>
+                <div class="h-4"></div>
+            </div>
+
+            <div class="p-4 bg-slate-900/90 border-t border-slate-800 backdrop-blur-xl">
+                <div class="relative flex items-center bg-slate-900 rounded-2xl border border-slate-700 focus-within:border-cyan-500 transition-all p-1 shadow-inner">
+                    <input x-model="newMsg" @keyup.enter="send" type="text" placeholder="Scrivi in CHATNITH..." 
+                           class="flex-1 p-4 bg-transparent outline-none text-sm font-medium text-white">
+                    <button @click="send" class="p-3 bg-cyan-600 text-white rounded-xl hover:bg-cyan-500 transition-colors shadow-lg active:scale-90">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
 </div>
 
 <script>
-    // SFIDA ACCETTATA: Uso una chiave di test pubblica per farla funzionare subito
-    const PUSHER_KEY = '4948a97c4583e782626e'; 
-    const CLUSTER = 'eu';
-    
-    const pusher = new Pusher(PUSHER_KEY, { cluster: CLUSTER });
-    const channel = pusher.subscribe('global-chat-room');
-    
-    let username = "";
-
-    function join() {
-        username = document.getElementById('nick').value || "Anonimo";
-        document.getElementById('overlay').style.display = 'none';
-    }
-
-    // Ricezione messaggi
-    channel.bind('new-msg', function(data) {
-        const chat = document.getElementById('chat');
-        const isMe = data.name === username;
+    function chatApp() {
+        const SB_URL = 'https://aarpqxnoskyzmliqpaor.supabase.co'; 
+        const SB_KEY = 'sb_publishable_eA6TYstP3koJVbkHdDmc7A_07e7zV2r'; 
         
-        const div = document.createElement('div');
-        div.className = `msg ${isMe ? 'me' : ''}`;
-        div.innerHTML = `<span class="user">${data.name}</span>${data.text}`;
-        
-        chat.appendChild(div);
-        chat.scrollTop = chat.scrollHeight;
-    });
+        const supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
-    // Invio messaggi (Sfruttiamo un gateway pubblico per la sfida)
-    async function send() {
-        const input = document.getElementById('message');
-        if (!input.value || !username) return;
+        return {
+            username: '', tempName: '', usernameSet: false, newMsg: '', messages: [],
+            
+            init() {
+                const saved = localStorage.getItem('_chatnith_uid');
+                if(saved) {
+                    this.username = saved;
+                    this.usernameSet = true;
+                    this.startChat();
+                }
+            },
 
-        const payload = {
-            name: username,
-            text: input.value
-        };
+            lockUsername() {
+                const name = this.tempName.trim();
+                if(name.length < 2) return;
+                localStorage.setItem('_chatnith_uid', name);
+                this.username = name;
+                this.usernameSet = true;
+                this.startChat();
+            },
 
-        // Questo invia il segnale a tutti tramite un endpoint di test
-        fetch(`https://backend.pusher.com/apps/1802113/events?name=new-msg&channels=global-chat-room&data=${encodeURIComponent(JSON.stringify(payload))}`, {
-            method: 'POST',
-            mode: 'no-cors' 
-        });
+            async startChat() {
+                // Carico i messaggi esistenti
+                const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true }).limit(100);
+                this.messages = data || [];
+                this.scroll();
 
-        // Simuliamo l'invio immediato per te (Pusher farà il resto per gli altri)
-        input.value = '';
+                // Setup Canale Realtime "Corazzato"
+                const channel = supabase.channel('chatnith_global', {
+                    config: { ack: true }
+                });
+
+                channel.on('postgres_changes', { 
+                    event: 'INSERT', 
+                    schema: 'public', 
+                    table: 'messages' 
+                }, payload => {
+                    // Evita duplicati se il database risponde più velocemente del realtime
+                    if (!this.messages.some(m => m.id === payload.new.id)) {
+                        this.messages.push(payload.new);
+                        this.scroll();
+                    }
+                })
+                .subscribe(async (status) => {
+                    if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
+                        console.warn("Connessione persa, riprovo...");
+                        setTimeout(() => this.startChat(), 3000);
+                    }
+                });
+            },
+
+            async send() {
+                const content = this.newMsg.trim();
+                if(!content) return;
+                
+                this.newMsg = ''; // Pulizia immediata UI
+                
+                const { error } = await supabase.from('messages').insert([{ 
+                    username: this.username, 
+                    content: content 
+                }]);
+                
+                if(error) {
+                    console.error("Errore invio:", error);
+                    alert("Errore nell'invio del messaggio. Riprova.");
+                }
+            },
+
+            scroll() {
+                this.$nextTick(() => {
+                    const b = document.getElementById('chat-box');
+                    if(b) b.scrollTop = b.scrollHeight;
+                });
+            }
+        }
     }
-
-    // Invio con tasto Enter
-    document.getElementById('message').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') send();
-    });
 </script>
-
 </body>
 </html>
