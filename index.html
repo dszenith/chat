@@ -11,11 +11,9 @@
     <link rel="icon" type="image/png" href="./logo.png">
 
     <script>
-        // Registrazione Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .catch(err => console.log('SW error:', err));
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error:', err));
             });
         }
     </script>
@@ -25,63 +23,34 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         [x-cloak] { display: none !important; }
-        body { background: #020617; overflow: hidden; font-family: 'Inter', sans-serif; }
-        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        body { background: #020617; overflow: hidden; font-family: 'Inter', sans-serif; height: 100dvh; }
+        .glass { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        /* Glossy & Shimmer Effect */
         .glossy {
-            position: relative;
-            overflow: hidden;
+            position: relative; overflow: hidden;
             background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
             backdrop-filter: blur(5px);
         }
         .glossy::after {
-            content: '';
-            position: absolute;
-            top: -50%; left: -50%;
-            width: 200%; height: 200%;
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
             background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-            transform: rotate(45deg);
-            animation: shimmer 4s infinite;
+            transform: rotate(45deg); animation: shimmer 4s infinite;
         }
         @keyframes shimmer {
             0% { transform: translateX(-150%) rotate(45deg); }
             100% { transform: translateX(150%) rotate(45deg); }
         }
 
-        /* Animations */
-        .msg-pop { animation: popEnfatizzato 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .msg-pop { animation: popEnfatizzato 0.3s ease-out forwards; }
         @keyframes popEnfatizzato {
-            0% { opacity: 0; transform: scale(0.6) translateY(30px); filter: blur(8px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+            0% { opacity: 0; transform: translateY(10px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* Neon Logic per gli altri */
-        .neon-text {
-            font-weight: 900;
-            filter: drop-shadow(0 0 5px currentColor);
-        }
-
-        .my-neon-name {
-            color: #22d3ee;
-            text-shadow: 0 0 10px rgba(34, 211, 238, 0.8), 0 0 20px rgba(34, 211, 238, 0.4);
-            font-weight: 900;
-        }
-
-        .highlight-followed {
-            border: 2px solid #fbbf24 !important;
-            box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
-        }
-
-        .particle {
-            position: fixed; pointer-events: none; z-index: 1000; border-radius: 2px;
-            animation: fly 0.6s ease-out forwards;
-        }
-        @keyframes fly {
-            0% { transform: translate(0,0) scale(1); opacity: 1; }
-            100% { transform: translate(var(--tw-x), var(--tw-y)) scale(0); opacity: 0; }
-        }
+        .neon-text { font-weight: 900; filter: drop-shadow(0 0 5px currentColor); }
+        .my-neon-name { color: #22d3ee; text-shadow: 0 0 10px rgba(34, 211, 238, 0.8); font-weight: 900; }
+        .highlight-followed { border: 2px solid #fbbf24 !important; box-shadow: 0 0 15px rgba(251, 191, 36, 0.3); }
     </style>
 </head>
 <body class="text-slate-200" x-data="socialApp()" x-init="init()">
@@ -89,20 +58,21 @@
     <audio id="snd-pop" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" preload="auto"></audio>
     <audio id="snd-send" src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3" preload="auto"></audio>
 
-    <div x-cloak class="flex h-[100dvh] w-full max-w-6xl mx-auto overflow-hidden">
+    <div x-cloak class="flex h-[100dvh] w-full overflow-hidden bg-slate-950">
         
-        <aside class="w-20 bg-slate-950 border-r border-white/5 flex flex-col items-center py-4 gap-4 z-20 overflow-y-auto no-scrollbar">
-            <img src="./logo.png" class="w-10 h-10 mb-2 object-contain" alt="Logo">
+        <aside class="w-16 md:w-20 bg-slate-950 border-r border-white/5 flex flex-col items-center py-4 gap-4 z-20 overflow-y-auto no-scrollbar">
+            <img src="./logo.png" class="w-8 h-8 md:w-10 md:h-10 mb-2 object-contain" alt="Logo">
             
             <button @click="activeTarget = 'global'" 
-                    class="w-12 h-12 rounded-xl flex items-center justify-center transition-all cursor-pointer"
+                    class="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center transition-all cursor-pointer shrink-0"
                     :class="activeTarget === 'global' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/40' : 'bg-slate-800 text-slate-500 hover:bg-slate-700'">
                 <span class="font-black text-[10px]">ALL</span>
             </button>
-            <div class="w-8 h-px bg-white/10"></div>
+            <div class="w-8 h-px bg-white/10 shrink-0"></div>
+            
             <template x-for="contact in following" :key="contact">
-                <div class="relative group">
-                    <button @click="activeTarget = contact" class="w-12 h-12 rounded-full flex items-center justify-center font-black text-white text-lg transition-all hover:scale-110"
+                <div class="relative group shrink-0">
+                    <button @click="activeTarget = contact" class="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center font-black text-white text-sm md:text-lg transition-all hover:scale-110"
                              :style="'background:' + getUserColor(contact)"
                              :class="activeTarget === contact ? 'ring-2 ring-cyan-400 ring-offset-4 ring-offset-slate-950' : 'opacity-70'">
                         <span x-text="contact.substring(0,1).toUpperCase()"></span>
@@ -114,72 +84,66 @@
             </template>
         </aside>
 
-        <main class="flex-1 flex flex-col bg-slate-900/20">
-            <header class="h-16 flex items-center justify-between px-6 glass">
+        <main class="flex-1 flex flex-col bg-slate-900/10">
+            <header class="h-16 flex items-center justify-between px-4 md:px-8 glass shrink-0">
                 <div class="flex items-center gap-4">
-                    <img src="./logo.png" class="h-8 w-8 object-contain" alt="Logo">
-                    
-                    <h1 class="text-xl font-black text-white italic tracking-tighter flex items-center gap-2 uppercase">
+                    <h1 class="text-lg md:text-xl font-black text-white italic tracking-tighter flex items-center gap-2 uppercase">
                         <span class="text-cyan-500">#</span>
                         <span x-text="activeTarget"></span>
                     </h1>
                     <template x-if="activeTarget !== 'global' && !following.includes(activeTarget) && activeTarget !== username">
-                        <button @click="toggleFollow(activeTarget)" class="bg-yellow-500 text-black text-[10px] font-black px-3 py-1 rounded hover:bg-yellow-400 transition-colors cursor-pointer">
-                            + FOLLOW USER
+                        <button @click="toggleFollow(activeTarget)" class="bg-yellow-500 text-black text-[9px] font-black px-3 py-1 rounded hover:bg-yellow-400 transition-colors cursor-pointer uppercase">
+                            Follow
                         </button>
                     </template>
                 </div>
-                <div class="flex items-center gap-4">
-                    <div class="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-3 py-1 rounded-full text-[10px] font-black uppercase" x-text="username"></div>
-                    <button @click="logout" class="text-slate-500 hover:text-red-500 transition-colors"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg></button>
+                
+                <div class="flex items-center gap-3">
+                    <div class="hidden md:block bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest" x-text="username"></div>
+                    <button @click="logout" class="p-2 text-slate-500 hover:text-red-500 transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    </button>
                 </div>
             </header>
 
-            <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar">
+            <div id="chat-box" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 no-scrollbar">
                 <template x-for="msg in filteredMessages" :key="msg.id">
-                    <div :class="msg.username === username ? 'items-end' : 'items-start'" class="flex flex-col group msg-pop">
+                    <div x-show="!deletedLocal.includes(msg.id)" :class="msg.username === username ? 'items-end' : 'items-start'" class="flex flex-col group msg-pop">
                         <div class="flex items-center gap-2 mb-1 px-1" :class="msg.username === username ? 'flex-row-reverse' : 'flex-row'">
                             <span :class="msg.username === username ? 'my-neon-name' : 'neon-text'" 
-                                  class="text-[10px] uppercase cursor-pointer hover:underline"
+                                  class="text-[11px] uppercase cursor-pointer"
                                   :style="msg.username !== username ? 'color:' + getUserColor(msg.username) : ''"
                                   @click="activeTarget = msg.username"
                                   x-text="msg.username === username ? 'YOU' : msg.username"></span>
                             
-                            <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <template x-if="msg.username === username">
-                                    <div class="flex gap-2">
-                                        <button @click="editMsg(msg)" class="text-slate-500 hover:text-cyan-400"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
-                                        <button @click="deleteMsg(msg.id)" class="text-slate-500 hover:text-red-500"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
-                                    </div>
-                                </template>
-                            </div>
+                            <button @click="msg.username === username ? deleteMsg(msg.id) : deleteForMe(msg.id)" 
+                                    class="opacity-0 group-hover:opacity-100 transition-opacity text-slate-600 hover:text-red-500 px-1">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
                         </div>
 
-                        <div class="flex items-end gap-2 max-w-[85%]" :class="msg.username === username ? 'flex-row-reverse' : 'flex-row'">
+                        <div class="flex items-end gap-3 max-w-[90%] md:max-w-[70%]" :class="msg.username === username ? 'flex-row-reverse' : 'flex-row'">
                             <div :class="{
-                                    'bg-cyan-600/40 border-cyan-400/50 text-white': msg.username === username,
+                                    'bg-cyan-600/30 border-cyan-400/40 text-white': msg.username === username,
                                     'bg-slate-800/40 border-white/10 text-slate-100': msg.username !== username,
                                     'highlight-followed': activeTarget === 'global' && following.includes(msg.username) && msg.username !== username
                                  }"
-                                 class="relative px-4 py-2.5 text-[13px] border rounded-2xl glossy overflow-hidden"
-                                 :style="msg.username === username 
-                                    ? 'border-top-right-radius: 0;' 
-                                    : 'border-top-left-radius: 0; border-left: 4px solid ' + getUserColor(msg.username)">
-                                
-                                <span x-text="msg.content"></span>
+                                 class="px-5 py-3 text-sm border rounded-2xl glossy"
+                                 :style="msg.username === username ? 'border-top-right-radius: 2px;' : 'border-top-left-radius: 2px;'">
+                                <span x-text="msg.content" class="leading-relaxed break-words"></span>
                             </div>
-                            <span class="text-[8px] text-slate-600 font-bold mb-1" x-text="formatTime(msg.created_at)"></span>
+                            <span class="text-[9px] text-slate-600 font-bold mb-1 tabular-nums" x-text="formatTime(msg.created_at)"></span>
                         </div>
                     </div>
                 </template>
             </div>
 
-            <footer class="p-4 bg-slate-950/50">
-                <div class="flex items-center bg-slate-900 border border-white/10 rounded-xl p-1 focus-within:border-cyan-500/50 transition-all">
-                    <input x-model="newMsg" @keyup.enter="triggerSend($event)" type="text" :placeholder="editingId ? 'Edit your message...' : 'Type a message...'" 
+            <footer class="p-4 md:p-6 bg-slate-950/80 backdrop-blur-xl border-t border-white/5 shrink-0">
+                <div class="max-w-4xl mx-auto flex items-center bg-slate-900 border border-white/10 rounded-2xl p-1.5 focus-within:border-cyan-500/50 transition-all shadow-2xl">
+                    <input x-model="newMsg" @keyup.enter="triggerSend($event)" type="text" placeholder="Scrivi un messaggio..." 
                            class="flex-1 bg-transparent border-none outline-none px-4 text-sm text-slate-200">
-                    <button @click="triggerSend($event)" class="bg-cyan-500 hover:bg-cyan-400 text-white w-10 h-10 rounded-lg flex items-center justify-center transition-all cursor-pointer shadow-lg active:scale-90">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+                    <button @click="triggerSend($event)" class="bg-cyan-500 hover:bg-cyan-400 text-white w-12 h-12 rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-lg active:scale-95">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
                     </button>
                 </div>
             </footer>
@@ -187,13 +151,14 @@
     </div>
 
     <template x-if="!isLoggedIn">
-        <div class="fixed inset-0 bg-slate-950 z-[100] flex items-center justify-center p-6 text-center">
-            <div class="w-full max-w-xs space-y-6">
-                <h2 class="text-5xl font-black text-white italic tracking-tighter">CHATNITH</h2>
-                <div class="bg-slate-900/50 p-8 rounded-3xl border border-white/5 space-y-4">
-                    <input x-model="auth.nick" type="text" placeholder="NICKNAME" class="w-full p-3 bg-slate-950 border border-white/10 rounded-lg text-white text-sm outline-none focus:border-cyan-500 uppercase">
-                    <input x-model="auth.pass" type="password" placeholder="PASSWORD" class="w-full p-3 bg-slate-950 border border-white/10 rounded-lg text-white text-sm outline-none focus:border-cyan-500">
-                    <button @click="handleAuth" class="w-full bg-cyan-600 hover:bg-cyan-500 p-4 rounded-xl font-black text-xs cursor-pointer uppercase tracking-widest">Login / Join</button>
+        <div class="fixed inset-0 bg-slate-950 z-[100] flex items-center justify-center p-6">
+            <div class="w-full max-w-sm space-y-8 text-center">
+                <img src="./logo.png" class="w-20 h-20 mx-auto mb-4 object-contain animate-pulse">
+                <h2 class="text-6xl font-black text-white italic tracking-tighter uppercase">CHATNITH</h2>
+                <div class="bg-slate-900 border border-white/5 p-8 rounded-[40px] shadow-2xl space-y-4">
+                    <input x-model="auth.nick" type="text" placeholder="NICKNAME" class="w-full p-4 bg-slate-950 border border-white/10 rounded-2xl text-white outline-none focus:border-cyan-500 uppercase font-bold">
+                    <input x-model="auth.pass" type="password" placeholder="PASSWORD" class="w-full p-4 bg-slate-950 border border-white/10 rounded-2xl text-white outline-none focus:border-cyan-500 font-bold">
+                    <button @click="handleAuth" class="w-full bg-cyan-600 hover:bg-cyan-500 p-5 rounded-2xl font-black text-sm cursor-pointer uppercase tracking-widest transition-all">ENTRA NELL'INTERFACCIA</button>
                 </div>
             </div>
         </div>
@@ -208,7 +173,7 @@
             return {
                 username: '', isLoggedIn: false, auth: { nick: '', pass: '' },
                 newMsg: '', messages: [], activeTarget: 'global', following: [],
-                editingId: null,
+                deletedLocal: [],
 
                 init() {
                     const saved = JSON.parse(localStorage.getItem('_chatnith_user'));
@@ -216,27 +181,14 @@
                         this.username = saved.nick;
                         this.following = saved.following || [];
                         this.isLoggedIn = true;
+                        this.deletedLocal = JSON.parse(localStorage.getItem('_chatnith_del_' + this.username)) || [];
                         this.startChat();
                     }
                 },
 
                 triggerSend(e) {
                     if(!this.newMsg.trim()) return;
-                    this.createParticles(e.clientX || window.innerWidth/2, e.clientY || window.innerHeight - 50);
                     this.send();
-                },
-
-                createParticles(x, y) {
-                    for(let i=0; i<15; i++) {
-                        const p = document.createElement('div');
-                        p.className = 'particle bg-cyan-400 shadow-[0_0_8px_cyan]';
-                        p.style.left = x + 'px'; p.style.top = y + 'px';
-                        p.style.width = Math.random() * 5 + 'px'; p.style.height = p.style.width;
-                        p.style.setProperty('--tw-x', (Math.random() - 0.5) * 200 + 'px');
-                        p.style.setProperty('--tw-y', (Math.random() - 0.5) * 200 - 50 + 'px');
-                        document.body.appendChild(p);
-                        setTimeout(() => p.remove(), 600);
-                    }
                 },
 
                 async handleAuth() {
@@ -249,23 +201,28 @@
                     } else if(data.password === this.auth.pass) {
                         this.login(data);
                     } else {
-                        alert("Wrong Password!");
+                        alert("Password errata!");
                     }
                 },
 
                 login(user) {
                     this.username = user.nickname;
                     this.following = user.following || [];
-                    localStorage.setItem('_chatnith_user', JSON.stringify({nick: this.username, following: this.following}));
+                    this.saveLocal();
                     this.isLoggedIn = true;
+                    this.deletedLocal = JSON.parse(localStorage.getItem('_chatnith_del_' + this.username)) || [];
                     this.startChat();
+                },
+
+                saveLocal() {
+                    localStorage.setItem('_chatnith_user', JSON.stringify({nick: this.username, following: this.following}));
                 },
 
                 async toggleFollow(target) {
                     if(!this.following.includes(target)) {
                         this.following.push(target);
                         await supabase.from('users_profiles').update({ following: this.following }).eq('nickname', this.username);
-                        this.saveFollowing();
+                        this.saveLocal();
                     }
                 },
 
@@ -273,36 +230,30 @@
                     this.following = this.following.filter(f => f !== target);
                     if(this.activeTarget === target) this.activeTarget = 'global';
                     await supabase.from('users_profiles').update({ following: this.following }).eq('nickname', this.username);
-                    this.saveFollowing();
-                },
-
-                saveFollowing() {
-                    localStorage.setItem('_chatnith_user', JSON.stringify({nick: this.username, following: this.following}));
-                },
-
-                editMsg(msg) {
-                    this.newMsg = msg.content;
-                    this.editingId = msg.id;
+                    this.saveLocal();
                 },
 
                 async send() {
                     document.getElementById('snd-send').currentTime = 0;
                     document.getElementById('snd-send').play().catch(()=>{});
-                    
-                    if(this.editingId) {
-                        await supabase.from('messages').update({ content: this.newMsg }).eq('id', this.editingId);
-                        this.editingId = null;
-                    } else {
-                        const m = { username: this.username, content: this.newMsg, to_user: this.activeTarget === 'global' ? null : this.activeTarget };
-                        await supabase.from('messages').insert([m]);
-                    }
+                    const m = { username: this.username, content: this.newMsg, to_user: this.activeTarget === 'global' ? null : this.activeTarget };
+                    await supabase.from('messages').insert([m]);
                     this.newMsg = '';
                 },
 
-                async deleteMsg(id) { await supabase.from('messages').delete().eq('id', id); },
+                async deleteMsg(id) {
+                    if(confirm("Eliminare il messaggio per tutti?")) {
+                        await supabase.from('messages').delete().eq('id', id);
+                    }
+                },
+
+                deleteForMe(id) {
+                    this.deletedLocal.push(id);
+                    localStorage.setItem('_chatnith_del_' + this.username, JSON.stringify(this.deletedLocal));
+                },
 
                 async startChat() {
-                    const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: false }).limit(100);
+                    const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: false }).limit(150);
                     this.messages = (data || []).reverse(); this.scroll();
                     supabase.channel('messages').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, p => {
                         if (p.eventType === 'INSERT') {
@@ -312,11 +263,9 @@
                                 document.getElementById('snd-pop').play().catch(()=>{});
                             }
                         }
-                        if (p.eventType === 'UPDATE') {
-                            const idx = this.messages.findIndex(m => m.id === p.new.id);
-                            if(idx !== -1) this.messages[idx] = p.new;
+                        if (p.eventType === 'DELETE') {
+                            this.messages = this.messages.filter(m => m.id !== p.old.id);
                         }
-                        if (p.eventType === 'DELETE') this.messages = this.messages.filter(m => m.id !== p.old.id);
                         this.scroll();
                     }).subscribe();
                 },
@@ -327,10 +276,12 @@
                 },
                 formatTime(t) { return new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); },
                 get filteredMessages() {
-                    if (this.activeTarget === 'global') return this.messages.filter(m => !m.to_user);
-                    return this.messages.filter(m => (m.username === this.username && m.to_user === this.activeTarget) || (m.username === this.activeTarget && m.to_user === this.username));
+                    let base = this.activeTarget === 'global' 
+                        ? this.messages.filter(m => !m.to_user)
+                        : this.messages.filter(m => (m.username === this.username && m.to_user === this.activeTarget) || (m.username === this.activeTarget && m.to_user === this.username));
+                    return base;
                 },
-                scroll() { this.$nextTick(() => { const b = document.getElementById('chat-box'); b.scrollTop = b.scrollHeight; }); },
+                scroll() { this.$nextTick(() => { const b = document.getElementById('chat-box'); if(b) b.scrollTop = b.scrollHeight; }); },
                 logout() { localStorage.removeItem('_chatnith_user'); location.reload(); }
             }
         }
